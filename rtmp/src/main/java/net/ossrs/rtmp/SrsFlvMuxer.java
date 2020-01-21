@@ -214,13 +214,15 @@ public class SrsFlvMuxer {
   private boolean connect(String url) {
     this.url = url;
     if (!connected) {
-      Log.i(TAG, String.format("worker: connecting to RTMP server by url=%s\n", url));
+      Log.i(TAG, String.format("worker xitong : connecting to RTMP server by url=%s\n", url));
       if (publisher.connect(url)) {
+        Log.i(TAG, "publisher connect url "+url);
         connected = publisher.publish("live");
       }
       mVideoSequenceHeader = null;
       mAudioSequenceHeader = null;
     }
+    Log.i(TAG, "connect status = "+connected);
     return connected;
   }
 
@@ -249,17 +251,20 @@ public class SrsFlvMuxer {
    * start to the remote SRS for remux.
    */
   public void start(final String rtmpUrl) {
+    Log.i(TAG, "xitong start RTMP "+rtmpUrl);
     worker = new Thread(new Runnable() {
       @Override
       public void run() {
         android.os.Process.setThreadPriority(Process.THREAD_PRIORITY_MORE_FAVORABLE);
         if (!connect(rtmpUrl)) {
+          Log.e(TAG, "xitong failed to connect "+rtmpUrl);
           return;
         }
         reTries = numRetry;
         connectCheckerRtmp.onConnectionSuccessRtmp();
         while (!Thread.interrupted()) {
           try {
+            Log.i(TAG, "xitong poll a frame");
             SrsFlvFrame frame = mFlvTagCache.poll(1, TimeUnit.SECONDS);
             if (frame == null) {
               Log.i(TAG, "Skipping iteration, frame null");

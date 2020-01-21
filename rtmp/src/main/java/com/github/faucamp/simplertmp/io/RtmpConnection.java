@@ -115,7 +115,7 @@ public class RtmpConnection implements RtmpPublisher {
     port = portStr != null ? Integer.parseInt(portStr) : 1935;
     appName = rtmpMatcher.group(3);
     streamName = rtmpMatcher.group(4);
-    tcUrl = rtmpMatcher.group(0).substring(0, rtmpMatcher.group(0).length() - streamName.length());
+    tcUrl = rtmpMatcher.group(0).substring(0, rtmpMatcher.group(0).length() - streamName.length()) + streamName.substring(0,streamName.lastIndexOf("stream")-1);
 
     // socket connection
     Log.d(TAG, "connect() called. Host: "
@@ -162,6 +162,7 @@ public class RtmpConnection implements RtmpPublisher {
   }
 
   private boolean rtmpConnect() {
+    Log.d(TAG,"xitong rtmpconnect");
     if (connected) {
       connectCheckerRtmp.onConnectionFailedRtmp("Already connected");
       return false;
@@ -172,23 +173,27 @@ public class RtmpConnection implements RtmpPublisher {
     } else {
       // Mark session timestamp of all chunk stream information on connection.
       ChunkStreamInfo.markSessionTimestampTx();
-      Log.d(TAG, "rtmpConnect(): Building 'connect' invoke packet");
+      Log.d(TAG, "xitong rtmpConnect(): Building 'connect' invoke packet");
       ChunkStreamInfo chunkStreamInfo =
           rtmpSessionInfo.getChunkStreamInfo(ChunkStreamInfo.RTMP_CID_OVER_CONNECTION);
       Command invoke = new Command("connect", ++transactionIdCounter, chunkStreamInfo);
       invoke.getHeader().setMessageStreamId(0);
       AmfObject args = new AmfObject();
-      args.setProperty("app", appName);
-      args.setProperty("flashVer", "FMLE/3.0 (compatible; Lavf57.56.101)");
-      args.setProperty("swfUrl", swfUrl);
+        Log.d(TAG,"set app = "+appName+"/"+streamName.substring(0,streamName.lastIndexOf("stream")-1));
+      //args.setProperty("app", appName);
+        args.setProperty("app", appName+"/"+streamName.substring(0,streamName.lastIndexOf("stream")-1));
+      //args.setProperty("flashVer", "FMLE/3.0 (compatible; Lavf57.56.101)");
+      args.setProperty("flashVer", "FMLE/3.0 (compatible; Lavf58.35.102)");
+      //args.setProperty("swfUrl", swfUrl);
+      Log.d(TAG,"tcUrl = "+tcUrl);
       args.setProperty("tcUrl", tcUrl);
-      args.setProperty("fpad", false);
-      args.setProperty("capabilities", 239);
-      args.setProperty("audioCodecs", 3575);
-      args.setProperty("videoCodecs", 252);
-      args.setProperty("videoFunction", 1);
-      args.setProperty("pageUrl", pageUrl);
-      args.setProperty("objectEncoding", 0);
+      //args.setProperty("fpad", false);
+      //args.setProperty("capabilities", 239);
+      //args.setProperty("audioCodecs", 3575);
+      //args.setProperty("videoCodecs", 252);
+      //args.setProperty("videoFunction", 1);
+      //args.setProperty("pageUrl", pageUrl);
+      //args.setProperty("objectEncoding", 0);
       invoke.addData(args);
       sendRtmpPacket(invoke);
     }
@@ -208,7 +213,7 @@ public class RtmpConnection implements RtmpPublisher {
 
   private void sendConnectAuthPacketUser(String user) {
     ChunkStreamInfo.markSessionTimestampTx();
-    Log.d(TAG, "rtmpConnect(): Building 'connect' invoke packet");
+    Log.d(TAG, "rtmpConnect(): Building 'connect' invoke packet user = "+user);
     ChunkStreamInfo chunkStreamInfo =
         rtmpSessionInfo.getChunkStreamInfo(ChunkStreamInfo.RTMP_CID_OVER_STREAM);
     Command invoke = new Command("connect", ++transactionIdCounter, chunkStreamInfo);
@@ -246,12 +251,13 @@ public class RtmpConnection implements RtmpPublisher {
     }
 
     ChunkStreamInfo.markSessionTimestampTx();
-    Log.d(TAG, "rtmpConnect(): Building 'connect' invoke packet");
+    Log.d(TAG, "xitong rtmpConnect(): Building 'connect' invoke packet");
     ChunkStreamInfo chunkStreamInfo =
         rtmpSessionInfo.getChunkStreamInfo(ChunkStreamInfo.RTMP_CID_OVER_STREAM);
     Command invoke = new Command("connect", ++transactionIdCounter, chunkStreamInfo);
     invoke.getHeader().setMessageStreamId(0);
     AmfObject args = new AmfObject();
+    Log.d(TAG,"set app = "+appName +" "+result);
     args.setProperty("app", appName + result);
     args.setProperty("flashVer", "FMLE/3.0 (compatible; Lavf57.56.101)");
     args.setProperty("swfUrl", swfUrl);
@@ -293,7 +299,7 @@ public class RtmpConnection implements RtmpPublisher {
     releaseStream.addData(streamName);  // command object: null for "releaseStream"
     sendRtmpPacket(releaseStream);
 
-    Log.d(TAG, "createStream(): Sending FCPublish command...");
+    Log.d(TAG, "xitong createStream(): Sending FCPublish command...");
     // transactionId == 3
     Command FCPublish = new Command("FCPublish", ++transactionIdCounter);
     FCPublish.getHeader().setChunkStreamId(ChunkStreamInfo.RTMP_CID_OVER_STREAM);
@@ -340,8 +346,11 @@ public class RtmpConnection implements RtmpPublisher {
     publish.getHeader().setChunkStreamId(ChunkStreamInfo.RTMP_CID_OVER_STREAM);
     publish.getHeader().setMessageStreamId(currentStreamId);
     publish.addData(new AmfNull());  // command object: null for "publish"
-    publish.addData(streamName);
+    //publish.addData(streamName);
+    //hardcode to stream
+    publish.addData("stream");
     publish.addData(publishType);
+    Log.d(TAG, "fmlePublish(): xitong streamName = "+streamName+", publishtype = "+publishType);
     sendRtmpPacket(publish);
   }
 
@@ -585,6 +594,7 @@ public class RtmpConnection implements RtmpPublisher {
 
   private void handleRxInvoke(Command invoke) {
     String commandName = invoke.getCommandName();
+    Log.i(TAG, "xitong HandleRxInvoke "+commandName);
     switch (commandName) {
       case "_error":
         try {
@@ -663,6 +673,7 @@ public class RtmpConnection implements RtmpPublisher {
           }
           // Capture server ip/pid/id information if any
           // We can now send createStream commands
+          Log.d(TAG, "xitong connect = true");
           connected = true;
           synchronized (connectingLock) {
             connectingLock.notifyAll();
@@ -722,6 +733,7 @@ public class RtmpConnection implements RtmpPublisher {
 
   @Override
   public void setAuthorization(String user, String password) {
+      Log.d(TAG, "xitong set user = "+ user);
     this.user = user;
     this.password = password;
   }
