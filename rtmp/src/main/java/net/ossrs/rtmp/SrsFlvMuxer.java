@@ -264,7 +264,6 @@ public class SrsFlvMuxer {
         connectCheckerRtmp.onConnectionSuccessRtmp();
         while (!Thread.interrupted()) {
           try {
-            Log.i(TAG, "xitong poll a frame");
             SrsFlvFrame frame = mFlvTagCache.poll(1, TimeUnit.SECONDS);
             if (frame == null) {
               Log.i(TAG, "Skipping iteration, frame null");
